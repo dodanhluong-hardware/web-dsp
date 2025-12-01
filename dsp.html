@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=1280, user-scalable=yes" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>DDL</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
@@ -106,10 +106,10 @@
     /* --- MODULE CARDS --- */
     .module-card {
       background: var(--bg-panel); border: 1px solid var(--border-subtle);
-      border-radius: 12px; margin-bottom: 0; /* Để Grid tự xử lý khoảng cách */
+      border-radius: 12px; margin-bottom: 0; 
       overflow: hidden;
       box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-      height: 100%; /* Căng đều chiều cao */
+      height: 100%; 
     }
     .module-head {
       background: rgba(255,255,255,0.03); padding: 10px 15px;
@@ -174,31 +174,22 @@
     }
     .v-fader-cap::after { content:''; position: absolute; top: 50%; left: 2px; right: 2px; height: 1px; background: #fff; opacity: 0.5; }
 
-    /* === NEW LAYOUT SYSTEM (GEMINI BALANCED) === */
+    /* LAYOUT GRIDS */
     .grid-2 { display: grid; grid-template-columns: 420px 1fr; gap: 24px; }
-    
-    /* Mic Layout: 3 Rows */
+    .grid-mic { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     .mic-container { display: flex; flex-direction: column; gap: 24px; }
-    
-    /* Row 1: Top (Feedback + Preset) - Auto Width */
     .mic-top-row { display: grid; grid-template-columns: 1fr; gap: 24px; }
-    
-    /* Row 2: FX (Reverb + Echo) - Equal Width */
     .mic-fx-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    
-    /* Row 3: EQ (Mic 1 + Mic 2) - Equal Width */
     .mic-eq-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 
     @media (max-width: 900px) {
-      .grid-2 { grid-template-columns: 1fr; }
-      /* On mobile, stack everything cleanly */
-      .mic-fx-row, .mic-eq-row { grid-template-columns: 1fr; }
+      .grid-2, .grid-mic, .mic-fx-row, .mic-eq-row { grid-template-columns: 1fr; }
       .sidebar { width: 65px; min-width: 65px; }
       .nav-btn { width: 42px; height: 42px; font-size: 8px; }
       .page-title { font-size: 14px; }
       .header { padding: 0 15px; }
       .content { padding: 15px; }
-      .module-card { margin-bottom: 0; /* Reset for grid gap */ }
+      .module-card { margin-bottom: 15px; height: auto; }
     }
   </style>
 </head>
@@ -206,7 +197,7 @@
 
 <div class="app">
   <div class="sidebar">
-    <div class="brand">DDL<br><span>Sound</span></div>
+    <div class="brand">DDL<br><span>SOUND</span></div>
     <button class="nav-btn active" onclick="setTab('left')" id="btn-left">LEFT</button>
     <button class="nav-btn" onclick="setTab('right')" id="btn-right">RIGHT</button>
     <button class="nav-btn" onclick="setTab('sub')" id="btn-sub">SUB</button>
@@ -274,7 +265,12 @@
   const defaultData = {
     left: { bands: JSON.parse(JSON.stringify(PRESETS.eq.flat.bands)), loudness: { on: true, thresh: -40, maxGain: 6.0, freq: 80 }, vol: 0 },
     right: { bands: JSON.parse(JSON.stringify(PRESETS.eq.flat.bands)), loudness: { on: true, thresh: -40, maxGain: 6.0, freq: 80 }, vol: 0 },
-    sub: { freq: 90, vol: 0 },
+    
+    sub: {
+        sub1: { freq: 90, vol: 0 },
+        sub2: { freq: 90, vol: 0 }
+    },
+
     mic: {
       mic1: [0,0,0], mic2: [0,0,0], 
       reverb: { ...PRESETS.mic.karaoke.reverb },
@@ -284,10 +280,11 @@
     info: ""
   };
 
-  let appData = JSON.parse(localStorage.getItem('geminiProV7')) || defaultData;
+  // Đổi key để đảm bảo load mới
+  let appData = JSON.parse(localStorage.getItem('geminiProFinalV8')) || defaultData;
   let currentTab = 'left';
 
-  function save() { localStorage.setItem('geminiProV7', JSON.stringify(appData)); }
+  function save() { localStorage.setItem('geminiProFinalV8', JSON.stringify(appData)); }
   function markDirty() { 
       const el = document.getElementById('saveStatusText');
       el.innerText = "UNSAVED CHANGES..."; el.style.color = "var(--c-danger)"; 
@@ -303,7 +300,7 @@
     const btn = document.getElementById('btn-'+tab);
     if(btn) btn.classList.add('active');
     
-    const titles = { left: "LEFT CHANNEL EQ", right: "RIGHT CHANNEL EQ", sub: "SUBWOOFER MANAGER", mic: "MICROPHONE & FX PROCESSOR", info: "SYSTEM INFO" };
+    const titles = { left: "LEFT CHANNEL EQ", right: "RIGHT CHANNEL EQ", sub: "DUAL SUBWOOFER", mic: "MICROPHONE & FX PROCESSOR", info: "SYSTEM INFO" };
     pageTitle.innerText = titles[tab] || "DSP CONTROL";
     render();
   }
@@ -341,12 +338,13 @@
             setTimeout(() => sendDSP(`0;0;${chID},${b.f},${b.g},${b.q},${i+1},${b.t}~`), i*30);
         });
     }
-    else if (type === 'sub') {
+    else if (type === 'sub1' || type === 'sub2') {
         const source = PRESETS.sub[key];
         if(!source) return;
-        appData.sub.freq = source.freq;
-        appData.sub.vol = source.vol;
-        sendDSP(`3;0;${source.freq},${source.vol}~`);
+        appData.sub[type].freq = source.freq;
+        appData.sub[type].vol = source.vol;
+        const subID = (type === 'sub1') ? 1 : 2;
+        sendDSP(`3;${subID};${source.freq},${source.vol}~`);
     }
     else if (type === 'mic') {
         const source = PRESETS.mic[key];
@@ -361,7 +359,8 @@
              sendDSP(`6;0;${e.gain},${e.delay},${e.repeat},${e.drywet}~`);
         }, 50);
         setTimeout(() => {
-             sendDSP(`7;0;${appData.mic.feedback.q}~`);
+             const fb = appData.mic.feedback;
+             sendDSP(`7;0;${fb.q},${fb.enable?1:0}~`);
         }, 100);
     }
     markDirty(); 
@@ -378,7 +377,7 @@
 
     const grid = document.createElement('div'); grid.className = 'grid-2';
     const col1 = document.createElement('div'); col1.style.display='flex'; col1.style.flexDirection='column';
-    col1.style.gap = "24px"; // Khoảng cách đều giữa các module
+    col1.style.gap = "24px"; 
 
     const loudRack = createModule('DYNAMIC LOUDNESS', 'var(--c-warn)');
     const sendLoud = () => {
@@ -416,55 +415,74 @@
   }
 
   function renderSub() {
-    const data = appData.sub;
-    const rack = createModule('SUBWOOFER CONTROLLER', 'var(--c-danger)');
-    rack.el.style.maxWidth = '600px'; rack.el.style.margin = '0 auto';
-    
-    const presetDiv = document.createElement('div'); presetDiv.style.marginBottom = '20px';
-    const sel = document.createElement('select');
-    sel.innerHTML = `<option value="">-- LOAD SUB MODE --</option>` + Object.keys(PRESETS.sub).map(k=>`<option value="${k}">${PRESETS.sub[k].name}</option>`).join('');
-    sel.onchange = (e) => loadPreset('sub', e.target.value);
-    presetDiv.appendChild(sel);
-    rack.body.appendChild(presetDiv);
+    const container = document.createElement('div'); 
+    container.className = 'grid-mic'; 
 
-    const sendSub = () => sendDSP(`3;0;${data.freq},${data.vol}~`);
-    rack.body.appendChild(createSlider('LPF CUTOFF', data.freq, 20, 250, 1, 'Hz', v=>{data.freq=v; markDirty()}, sendSub, 'sub-slider'));
-    rack.body.appendChild(createSlider('SUB GAIN', data.vol, -60, 6, 0.5, 'dB', v=>{data.vol=v; markDirty()}, sendSub, 'sub-slider'));
-    content.appendChild(rack.el);
+    const subs = [
+        { id: 'sub1', label: 'SUBWOOFER 1', dspID: 1 },
+        { id: 'sub2', label: 'SUBWOOFER 2', dspID: 2 }
+    ];
+
+    subs.forEach(s => {
+        const data = appData.sub[s.id];
+        const rack = createModule(s.label, 'var(--c-danger)');
+        
+        const presetDiv = document.createElement('div'); presetDiv.style.marginBottom = '20px';
+        const sel = document.createElement('select');
+        sel.innerHTML = `<option value="">-- LOAD MODE (${s.id.toUpperCase()}) --</option>` + Object.keys(PRESETS.sub).map(k=>`<option value="${k}">${PRESETS.sub[k].name}</option>`).join('');
+        sel.onchange = (e) => loadPreset(s.id, e.target.value);
+        presetDiv.appendChild(sel);
+        rack.body.appendChild(presetDiv);
+
+        const sendThisSub = () => sendDSP(`3;${s.dspID};${data.freq},${data.vol}~`);
+
+        rack.body.appendChild(createSlider('LPF CUTOFF', data.freq, 20, 250, 1, 'Hz', v=>{data.freq=v; markDirty()}, sendThisSub, 'sub-slider'));
+        rack.body.appendChild(createSlider('SUB GAIN', data.vol, -60, 6, 0.5, 'dB', v=>{data.vol=v; markDirty()}, sendThisSub, 'sub-slider'));
+
+        container.appendChild(rack.el);
+    });
+        
+    content.appendChild(container);
   }
 
   function renderMic() {
     const micContainer = document.createElement('div'); micContainer.className='mic-container';
 
-    // 1. TOP ROW: PRESET + ANTI-FEEDBACK
     const topRow = document.createElement('div'); topRow.className = 'mic-top-row';
-    
     const controlRack = createModule('GLOBAL MIC CONTROL', '#fff');
-    // Preset
     const sel = document.createElement('select');
     sel.style.background = "#050505"; sel.style.border = "1px solid #444"; sel.style.color = "var(--c-mic)"; sel.style.fontSize = "12px"; sel.style.padding = "10px"; sel.style.marginBottom = "15px";
     sel.innerHTML = `<option value="">[ LOAD MIC PRESET ]</option>` + Object.keys(PRESETS.mic).map(k=>`<option value="${k}">${PRESETS.mic[k].name}</option>`).join('');
     sel.onchange = (e) => loadPreset('mic', e.target.value);
     controlRack.body.appendChild(sel);
 
-    // Feedback
+    // --- AUTO NOTCH + ENABLE CHECKBOX ---
     const fbData = appData.mic.feedback || { q: 5.0, enable: true };
     if (!appData.mic.feedback) appData.mic.feedback = fbData;
-    const sendFB = () => sendDSP(`7;0;${fbData.q}~`);
-    controlRack.body.appendChild(createSlider('AUTO NOTCH Q', fbData.q, 0.1, 10.0, 0.1, '', v=>{fbData.q=v; markDirty()}, sendFB, 'fx-slider'));
+    
+    // Gửi: 7;0;Q,Enable~
+    const sendFB = () => sendDSP(`7;0;${fbData.q},${fbData.enable?1:0}~`);
+    
+    const updateFB = (k, v) => { appData.mic.feedback[k] = v; markDirty(); };
+
+    controlRack.body.innerHTML += `
+        <div class="row-ctrl">
+            <div class="ctrl-label">ENABLE ANTI-FEEDBACK</div>
+            <input type="checkbox" style="width:20px; height:20px; accent-color:var(--c-fx)" 
+                ${fbData.enable ? 'checked' : ''} 
+                onchange="updateFB('enable', this.checked); ${sendFB.toString().replace('() =>', '()').replace(/[\r\n]/g, '')}()">
+        </div>`;
+    
+    controlRack.body.appendChild(createSlider('ANTI-FEEDBACK', fbData.q, 0.1, 10.0, 0.1, '', v=>{fbData.q=v; markDirty()}, sendFB, 'fx-slider'));
     
     const note = document.createElement('div');
-    note.innerHTML = "Auto-detection enabled. Q Factor: 0.1 (Wide) - 10.0 (Narrow)";
+    note.innerHTML = "Auto-detection. Q: 0.1 (Wide) - 10.0 (Narrow)";
     note.style.fontSize="10px"; note.style.color="#555"; note.style.marginTop="5px"; note.style.fontStyle="italic";
     controlRack.body.appendChild(note);
-    
     topRow.appendChild(controlRack.el);
     micContainer.appendChild(topRow);
 
-    // 2. FX ROW: REVERB + ECHO
     const fxRow = document.createElement('div'); fxRow.className = 'mic-fx-row';
-    
-    // Reverb
     const rev = appData.mic.reverb;
     const fxReverb = createModule('STUDIO REVERB', 'var(--c-fx)');
     const sendRev = () => sendDSP(`5;0;${rev.gain},${rev.decay},${rev.pre},${rev.drywet},${rev.room},${rev.damp}~`);
@@ -476,7 +494,6 @@
     fxReverb.body.appendChild(createSlider('DAMP', rev.damp, 0, 100, 1, '%', v=>{rev.damp=v;markDirty()}, sendRev, 'fx-slider'));
     fxRow.appendChild(fxReverb.el);
 
-    // Echo
     const echo = appData.mic.echo;
     const fxEcho = createModule('STEREO ECHO', 'var(--c-fx)');
     const sendEcho = () => sendDSP(`6;0;${echo.gain},${echo.delay},${echo.repeat},${echo.drywet}~`);
@@ -485,28 +502,26 @@
     fxEcho.body.appendChild(createSlider('FEEDBACK', echo.repeat, 0, 100, 1, '%', v=>{echo.repeat=v;markDirty()}, sendEcho, 'fx-slider'));
     fxEcho.body.appendChild(createSlider('WET MIX', echo.drywet, 0, 100, 1, '%', v=>{echo.drywet=v;markDirty()}, sendEcho, 'fx-slider'));
     fxRow.appendChild(fxEcho.el);
-
     micContainer.appendChild(fxRow);
 
-    // 3. EQ ROW: MIC 1 + MIC 2
     const eqRow = document.createElement('div'); eqRow.className = 'mic-eq-row';
-
     [1, 2].forEach(n => {
         const m = createModule(`MICROPHONE ${n} EQ`, 'var(--c-mic)');
         const r = document.createElement('div'); 
         r.className='eq-grid'; 
-        r.style.height='450px'; // 450px Height for tall sliders
+        r.style.height='450px'; 
         r.style.gridTemplateColumns='repeat(3, 1fr)';
-        
         const sendMicTone = () => { const t = appData.mic[`mic${n}`]; sendDSP(`4;${n};${t[0]},${t[1]},${t[2]}~`); };
         ['LO','MID','HI'].forEach((l,i)=> r.appendChild(createSimpleStrip(l, appData.mic[`mic${n}`][i], v=>{appData.mic[`mic${n}`][i]=v;markDirty()}, sendMicTone, 'var(--c-mic)')));
         m.body.appendChild(r); eqRow.appendChild(m.el);
     });
-    
     micContainer.appendChild(eqRow);
-
     content.appendChild(micContainer);
   }
+
+  // --- HELPER FUNCTIONS ---
+  // (Định nghĩa hàm updateFB global nếu cần dùng bên ngoài renderMic, nhưng ở trên đã định nghĩa inline)
+  window.updateFB = function(k, v) { appData.mic.feedback[k] = v; markDirty(); }
 
   function renderInfo() {
     const rack = createModule('SYSTEM NOTES', '#999');
@@ -631,5 +646,3 @@
 </script>
 </body>
 </html>
-
-
