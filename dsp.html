@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>DDL</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-body: #050507;
+      --bg-glass: rgba(30, 30, 35, 0.6);
+      --bg-panel: #141418;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      
+      /* Color Palette */
+      --c-primary: #29b6f6;
+      --c-danger: #ff5252;
+      --c-warn: #ffa726;
+      --c-success: #66bb6a;
+      --c-mic: #ab47bc;
+      --c-fx: #26a69a;
+      
+      --glow-primary: 0 0 10px rgba(41, 182, 246, 0.3);
+    }
+
+    * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      background: var(--bg-body);
+      color: #e0e0e0;
+      margin: 0;
+      height: 100vh;
+      height: 100dvh; 
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      overflow: hidden; 
+    }
+
+    .app { display: flex; width: 100%; height: 100%; }
+
+    /* --- SIDEBAR --- */
+    .sidebar {
+      width: 75px; min-width: 75px;
+      background: #09090b;
+      border-right: 1px solid var(--border-subtle);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px 0; gap: 12px; z-index: 10;
+    }
+
+    .brand {
+      font-weight: 900; color: #fff; font-size: 10px; text-align: center;
+      margin-bottom: 20px; letter-spacing: 2px; line-height: 1.4;
+      text-shadow: var(--glow-primary);
+    }
+    .brand span { color: var(--c-primary); font-size: 14px; }
+
+    .nav-btn {
+      width: 48px; height: 48px;
+      background: transparent; border: 1px solid var(--border-subtle);
+      color: #555; border-radius: 12px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 700; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.05); }
+    .nav-btn.active {
+      background: rgba(41, 182, 246, 0.15); color: var(--c-primary);
+      border-color: var(--c-primary); box-shadow: var(--glow-primary); transform: scale(1.05);
+    }
+    .nav-btn#btn-sub.active { color: var(--c-danger); border-color: var(--c-danger); background: rgba(255,82,82,0.15); box-shadow: 0 0 10px rgba(255,82,82,0.3); }
+    .nav-btn#btn-mic.active { color: var(--c-mic); border-color: var(--c-mic); background: rgba(171,71,188,0.15); box-shadow: 0 0 10px rgba(171,71,188,0.3); }
+
+    /* --- MAIN AREA --- */
+    .main { 
+      flex: 1; display: flex; flex-direction: column; position: relative; 
+      background: radial-gradient(circle at top right, #111115, #050507); min-width: 0;
+    }
+
+    .header {
+      height: 55px; min-height: 55px; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+      backdrop-filter: blur(10px);
+    }
+    .page-title { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: 0.5px; }
+    .status-dot { width: 8px; height: 8px; background: #333; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .status-dot.connected { background: var(--c-success); box-shadow: 0 0 8px var(--c-success); }
+
+    .content { flex: 1; padding: 20px; overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth; }
+    .content::-webkit-scrollbar { width: 4px; }
+    .content::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    .footer-status {
+      height: 55px; min-height: 55px; background: #0e0e10;
+      border-top: 1px solid var(--border-subtle); padding: 0 20px;
+      display: flex; justify-content: space-between; align-items: center; z-index: 100;
+    }
+    
+    .save-btn {
+      background: linear-gradient(135deg, var(--c-primary), #1976d2);
+      color: #fff; font-weight: 700; padding: 10px 25px; border: none; border-radius: 20px;
+      cursor: pointer; font-size: 11px; letter-spacing: 1px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: 0.2s;
+    }
+    .save-btn:active { transform: scale(0.95); }
+    .save-btn.confirm { background: var(--c-success); pointer-events: none; }
+
+    /* --- MODULE CARDS --- */
+    .module-card {
+      background: var(--bg-panel); border: 1px solid var(--border-subtle);
+      border-radius: 12px; margin-bottom: 0; /* Để Grid tự xử lý khoảng cách */
+      overflow: hidden;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+      height: 100%; /* Căng đều chiều cao */
+    }
+    .module-head {
+      background: rgba(255,255,255,0.03); padding: 10px 15px;
+      border-bottom: 1px solid var(--border-subtle); font-size: 11px; font-weight: 800;
+      color: #888; text-transform: uppercase; letter-spacing: 1px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .module-body { padding: 15px; }
+
+    /* --- CONTROLS --- */
+    .row-ctrl { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02); }
+    .ctrl-label { color: #aaa; font-size: 11px; width: 85px; font-weight: 600; white-space: nowrap; }
+    .val-disp { font-family: 'Inter', monospace; font-size: 12px; color: #fff; width: 50px; text-align: right; font-weight: 700; flex-shrink: 0; }
+
+    .slider-group { flex: 1; display: flex; align-items: center; margin: 0 8px; gap: 6px; }
+    .btn-step {
+      width: 26px; height: 26px; background: #222; border: 1px solid #333; color: #ccc;
+      border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold;
+    }
+    .btn-step:active { background: var(--c-primary); color: #000; border-color: var(--c-primary); }
+
+    input[type=range].h-slider { -webkit-appearance: none; flex: 1; height: 4px; background: #333; border-radius: 2px; cursor: pointer; }
+    input[type=range].h-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; background: #eee; border-radius: 50%;
+      margin-top: -7px; box-shadow: 0 0 10px rgba(255,255,255,0.5); border: 2px solid #000; transition: transform 0.1s;
+    }
+    input[type=range].h-slider:active::-webkit-slider-thumb { transform: scale(1.3); background: var(--c-primary); border-color: var(--c-primary); }
+    
+    .warn-slider::-webkit-slider-thumb { background: var(--c-warn) !important; box-shadow: 0 0 10px var(--c-warn); }
+    .fx-slider::-webkit-slider-thumb { background: var(--c-fx) !important; box-shadow: 0 0 10px var(--c-fx); }
+    .mic-slider::-webkit-slider-thumb { background: var(--c-mic) !important; box-shadow: 0 0 10px var(--c-mic); }
+    .sub-slider::-webkit-slider-thumb { background: var(--c-danger) !important; box-shadow: 0 0 10px var(--c-danger); }
+
+    .eq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); gap: 8px; margin-top: 10px; height: 550px; }
+    .eq-strip {
+      display: flex; flex-direction: column; align-items: center;
+      background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle);
+      padding: 10px 4px; height: 100%; border-radius: 8px;
+    }
+    
+    input[type=number], select {
+      background: #000; color: #fff; border: 1px solid #333;
+      padding: 6px; width: 100%; border-radius: 4px; font-family: 'Inter', monospace;
+      font-size: 10px; text-align: center; outline: none; margin-bottom: 8px;
+    }
+    input[type=number]:focus, select:focus { border-color: var(--c-primary); color: var(--c-primary); }
+
+    .v-fader-track {
+      flex: 1; width: 6px; background: #111; border-radius: 3px;
+      position: relative; margin: 15px 0; cursor: ns-resize;
+    }
+    .v-fader-fill {
+      position: absolute; bottom: 50%; left: 0; width: 100%;
+      background: var(--c-primary); opacity: 0.8; transition: height 0.05s; border-radius: 3px;
+      box-shadow: 0 0 10px var(--c-primary);
+    }
+    .v-fader-cap {
+      position: absolute; left: 50%; width: 30px; height: 45px;
+      background: linear-gradient(to bottom, #444, #222); border: 1px solid #111;
+      border-radius: 4px; box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+      bottom: 50%; transform: translate(-50%, 50%); z-index: 5;
+    }
+    .v-fader-cap::after { content:''; position: absolute; top: 50%; left: 2px; right: 2px; height: 1px; background: #fff; opacity: 0.5; }
+
+    /* === NEW LAYOUT SYSTEM (GEMINI BALANCED) === */
+    .grid-2 { display: grid; grid-template-columns: 420px 1fr; gap: 24px; }
+    
+    /* Mic Layout: 3 Rows */
+    .mic-container { display: flex; flex-direction: column; gap: 24px; }
+    
+    /* Row 1: Top (Feedback + Preset) - Auto Width */
+    .mic-top-row { display: grid; grid-template-columns: 1fr; gap: 24px; }
+    
+    /* Row 2: FX (Reverb + Echo) - Equal Width */
+    .mic-fx-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    
+    /* Row 3: EQ (Mic 1 + Mic 2) - Equal Width */
+    .mic-eq-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+    @media (max-width: 900px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      /* On mobile, stack everything cleanly */
+      .mic-fx-row, .mic-eq-row { grid-template-columns: 1fr; }
+      .sidebar { width: 65px; min-width: 65px; }
+      .nav-btn { width: 42px; height: 42px; font-size: 8px; }
+      .page-title { font-size: 14px; }
+      .header { padding: 0 15px; }
+      .content { padding: 15px; }
+      .module-card { margin-bottom: 0; /* Reset for grid gap */ }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">DDL<br><span>Sound</span></div>
+    <button class="nav-btn active" onclick="setTab('left')" id="btn-left">LEFT</button>
+    <button class="nav-btn" onclick="setTab('right')" id="btn-right">RIGHT</button>
+    <button class="nav-btn" onclick="setTab('sub')" id="btn-sub">SUB</button>
+    <button class="nav-btn" onclick="setTab('mic')" id="btn-mic">MIC</button>
+    <button class="nav-btn" onclick="setTab('info')" id="btn-info">INFO</button>
+  </div>
+
+  <div class="main">
+    <div class="header">
+      <div class="page-title" id="pageTitle">MAIN LEFT</div>
+      <div style="font-size:10px; color:#666; display:flex; align-items:center;">
+        <span class="status-dot connected"></span> LINKED
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+    
+    <div class="footer-status">
+        <div id="saveStatusText" style="color:#666; font-size:11px; font-family:monospace; font-weight:600">READY TO SYNC</div>
+        <button class="save-btn" onclick="handleSave(this)">SAVE TO CHIP</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function sendDSP(dataString) {
+      const time = new Date().toLocaleTimeString();
+      console.log(`%c[Tx] ${time}`, "color: #00e676; font-weight:bold", dataString);
+  }
+
+  const FILTER_TYPES = ["Peaking", "LowShelf", "HighShelf", "LowPass", "HighPass", "BandPass", "Notch", "Bypass"];
+  
+  const PRESETS = {
+    eq: {
+        flat: { name: "Flat (Mặc định)", bands: Array(6).fill().map((_,i)=>({t:i===0?"LowShelf":i===5?"HighShelf":"Peaking", f:[60,200,500,1000,4000,12000][i], q:1.0, g:0})) },
+        vocal: { name: "Tăng Lời (Vocal)", bands: [{t:"LowPass",f:80,q:1,g:-5}, {t:"Peaking",f:200,q:1,g:2}, {t:"Peaking",f:1000,q:1,g:0}, {t:"Peaking",f:3000,q:1,g:3}, {t:"Peaking",f:5000,q:1,g:2}, {t:"HighShelf",f:10000,q:1,g:1}] },
+        bass: { name: "Tăng Bass (DJ)", bands: [{t:"LowShelf",f:80,q:1,g:6}, {t:"Peaking",f:150,q:1,g:3}, {t:"Peaking",f:500,q:1,g:0}, {t:"Peaking",f:1000,q:1,g:0}, {t:"Peaking",f:4000,q:1,g:0}, {t:"HighShelf",f:10000,q:1,g:0}] }
+    },
+    sub: {
+        cinema: { name: "Phim Ảnh (Deep)", freq: 90, vol: 0 },
+        karaoke: { name: "Karaoke (Punchy)", freq: 120, vol: 2 },
+        soft: { name: "Nhạc Nhẹ (Soft)", freq: 80, vol: -5 }
+    },
+    mic: {
+        karaoke: { 
+            name: "Karaoke Gia Đình", 
+            reverb: { gain: 45, pre: 20, decay: 50, drywet: 40, room: 70, damp: 40 },
+            echo: { gain: 35, repeat: 45, drywet: 35, delay: 230 },
+            feedback: { q: 5.0, enable: true }
+        },
+        mc: { 
+            name: "MC / Phát Biểu", 
+            reverb: { gain: 15, pre: 0, decay: 20, drywet: 20, room: 30, damp: 80 },
+            echo: { gain: 0, repeat: 0, drywet: 0, delay: 0 }, 
+            feedback: { q: 3.0, enable: true }
+        },
+        pro: { 
+            name: "Ca Sĩ (Reverb Only)", 
+            reverb: { gain: 60, pre: 40, decay: 70, drywet: 50, room: 80, damp: 30 },
+            echo: { gain: 10, repeat: 20, drywet: 10, delay: 200 },
+            feedback: { q: 9.0, enable: true }
+        }
+    }
+  };
+
+  const defaultData = {
+    left: { bands: JSON.parse(JSON.stringify(PRESETS.eq.flat.bands)), loudness: { on: true, thresh: -40, maxGain: 6.0, freq: 80 }, vol: 0 },
+    right: { bands: JSON.parse(JSON.stringify(PRESETS.eq.flat.bands)), loudness: { on: true, thresh: -40, maxGain: 6.0, freq: 80 }, vol: 0 },
+    sub: { freq: 90, vol: 0 },
+    mic: {
+      mic1: [0,0,0], mic2: [0,0,0], 
+      reverb: { ...PRESETS.mic.karaoke.reverb },
+      echo: { ...PRESETS.mic.karaoke.echo },
+      feedback: { q: 5.0, enable: true }
+    },
+    info: ""
+  };
+
+  let appData = JSON.parse(localStorage.getItem('geminiProV7')) || defaultData;
+  let currentTab = 'left';
+
+  function save() { localStorage.setItem('geminiProV7', JSON.stringify(appData)); }
+  function markDirty() { 
+      const el = document.getElementById('saveStatusText');
+      el.innerText = "UNSAVED CHANGES..."; el.style.color = "var(--c-danger)"; 
+  }
+
+  const content = document.getElementById('content');
+  const pageTitle = document.getElementById('pageTitle');
+  const navBtns = document.querySelectorAll('.nav-btn');
+
+  function setTab(tab) {
+    currentTab = tab;
+    navBtns.forEach(b => { b.classList.remove('active'); });
+    const btn = document.getElementById('btn-'+tab);
+    if(btn) btn.classList.add('active');
+    
+    const titles = { left: "LEFT CHANNEL EQ", right: "RIGHT CHANNEL EQ", sub: "SUBWOOFER MANAGER", mic: "MICROPHONE & FX PROCESSOR", info: "SYSTEM INFO" };
+    pageTitle.innerText = titles[tab] || "DSP CONTROL";
+    render();
+  }
+
+  function render() {
+    content.innerHTML = '';
+    content.style.opacity = 0; setTimeout(() => content.style.opacity = 1, 50); content.style.transition = 'opacity 0.3s';
+    
+    if(currentTab === 'left' || currentTab === 'right') renderLR(currentTab);
+    else if(currentTab === 'sub') renderSub();
+    else if(currentTab === 'mic') renderMic();
+    else renderInfo();
+  }
+  
+  function handleSave(button) {
+      save();
+      sendDSP("9;0;SAVE_ALL~");
+      const statusTextEl = document.getElementById('saveStatusText');
+      button.classList.add('confirm'); button.innerText = 'SAVED!';
+      statusTextEl.innerText = "DATA TRANSMITTED"; statusTextEl.style.color = "var(--c-success)";
+      setTimeout(() => {
+          button.classList.remove('confirm'); button.innerText = 'SAVE TO CHIP';
+          statusTextEl.innerText = "READY TO SYNC"; statusTextEl.style.color = "#666";
+      }, 1500);
+  }
+
+  function loadPreset(type, key) {
+    if(!key) return;
+    if (type === 'left' || type === 'right') {
+        const source = PRESETS.eq[key];
+        if(!source) return;
+        appData[type].bands = JSON.parse(JSON.stringify(source.bands));
+        const chID = type==='left'?1:2;
+        appData[type].bands.forEach((b, i) => {
+            setTimeout(() => sendDSP(`0;0;${chID},${b.f},${b.g},${b.q},${i+1},${b.t}~`), i*30);
+        });
+    }
+    else if (type === 'sub') {
+        const source = PRESETS.sub[key];
+        if(!source) return;
+        appData.sub.freq = source.freq;
+        appData.sub.vol = source.vol;
+        sendDSP(`3;0;${source.freq},${source.vol}~`);
+    }
+    else if (type === 'mic') {
+        const source = PRESETS.mic[key];
+        if(!source) return;
+        appData.mic.reverb = { ...source.reverb };
+        appData.mic.echo = { ...source.echo };
+        appData.mic.feedback = { ...source.feedback };
+        const r = appData.mic.reverb;
+        sendDSP(`5;0;${r.gain},${r.decay},${r.pre},${r.drywet},${r.room},${r.damp}~`);
+        setTimeout(() => {
+             const e = appData.mic.echo;
+             sendDSP(`6;0;${e.gain},${e.delay},${e.repeat},${e.drywet}~`);
+        }, 50);
+        setTimeout(() => {
+             sendDSP(`7;0;${appData.mic.feedback.q}~`);
+        }, 100);
+    }
+    markDirty(); 
+    render();
+  }
+
+  function renderLR(ch) {
+    const data = appData[ch];
+    const chID = (ch === 'left') ? 1 : 2; 
+
+    const sendBandData = (band, index) => {
+        sendDSP(`0;0;${chID},${band.f},${band.g},${band.q},${index+1},${band.t}~`);
+    };
+
+    const grid = document.createElement('div'); grid.className = 'grid-2';
+    const col1 = document.createElement('div'); col1.style.display='flex'; col1.style.flexDirection='column';
+    col1.style.gap = "24px"; // Khoảng cách đều giữa các module
+
+    const loudRack = createModule('DYNAMIC LOUDNESS', 'var(--c-warn)');
+    const sendLoud = () => {
+        const l = data.loudness;
+        sendDSP(`1;0;${chID},${l.on?1:0},${l.thresh},${l.maxGain},${l.freq}~`);
+    };
+
+    loudRack.body.innerHTML += `<div class="row-ctrl"><div class="ctrl-label">ENABLE</div><input type="checkbox" style="width:20px; height:20px; accent-color:var(--c-warn)" ${data.loudness.on ? 'checked' : ''} onchange="updateLoud('${ch}','on',this.checked); ${sendLoud.toString().replace('() =>', '()').replace(/[\r\n]/g, '')}()"></div>`;
+    loudRack.body.appendChild(createSlider('THRESHOLD', data.loudness.thresh, -60, -10, 1, 'dB', v=>updateLoud(ch,'thresh',v), sendLoud, 'warn-slider'));
+    loudRack.body.appendChild(createSlider('COMPENSATE', data.loudness.maxGain, 0, 12, 0.5, 'dB', v=>updateLoud(ch,'maxGain',v), sendLoud, 'warn-slider'));
+    loudRack.body.appendChild(createSlider('REF FREQ', data.loudness.freq, 60, 300, 5, 'Hz', v=>updateLoud(ch,'freq',v), sendLoud, 'warn-slider'));
+    col1.appendChild(loudRack.el);
+
+    const masterRack = createModule('OUTPUT MASTER', '#fff');
+    const presetDiv = document.createElement('div'); presetDiv.style.marginBottom = '15px';
+    const sel = document.createElement('select');
+    sel.innerHTML = `<option value="">-- LOAD EQ PRESET --</option>` + Object.keys(PRESETS.eq).map(k=>`<option value="${k}">${PRESETS.eq[k].name}</option>`).join('');
+    sel.onchange = (e) => loadPreset(ch, e.target.value);
+    presetDiv.appendChild(sel);
+    masterRack.body.appendChild(presetDiv);
+    
+    masterRack.body.appendChild(createSlider('MAIN VOL', data.vol, -60, 6, 0.5, 'dB', v=>{data.vol=v; markDirty()}, v=>sendDSP(`2;0;${chID},${v}~`)));
+    col1.appendChild(masterRack.el);
+    grid.appendChild(col1);
+
+    const eqRack = createModule('6-BAND PARAMETRIC EQ', 'var(--c-primary)');
+    const eqGrid = document.createElement('div'); eqGrid.className = 'eq-grid'; 
+    data.bands.forEach((band, i) => {
+        eqGrid.appendChild(createComplexStrip(band, i, () => markDirty(), () => sendBandData(band, i)));
+    });
+    eqRack.body.appendChild(eqGrid);
+    grid.appendChild(eqRack.el);
+
+    content.appendChild(grid);
+  }
+
+  function renderSub() {
+    const data = appData.sub;
+    const rack = createModule('SUBWOOFER CONTROLLER', 'var(--c-danger)');
+    rack.el.style.maxWidth = '600px'; rack.el.style.margin = '0 auto';
+    
+    const presetDiv = document.createElement('div'); presetDiv.style.marginBottom = '20px';
+    const sel = document.createElement('select');
+    sel.innerHTML = `<option value="">-- LOAD SUB MODE --</option>` + Object.keys(PRESETS.sub).map(k=>`<option value="${k}">${PRESETS.sub[k].name}</option>`).join('');
+    sel.onchange = (e) => loadPreset('sub', e.target.value);
+    presetDiv.appendChild(sel);
+    rack.body.appendChild(presetDiv);
+
+    const sendSub = () => sendDSP(`3;0;${data.freq},${data.vol}~`);
+    rack.body.appendChild(createSlider('LPF CUTOFF', data.freq, 20, 250, 1, 'Hz', v=>{data.freq=v; markDirty()}, sendSub, 'sub-slider'));
+    rack.body.appendChild(createSlider('SUB GAIN', data.vol, -60, 6, 0.5, 'dB', v=>{data.vol=v; markDirty()}, sendSub, 'sub-slider'));
+    content.appendChild(rack.el);
+  }
+
+  function renderMic() {
+    const micContainer = document.createElement('div'); micContainer.className='mic-container';
+
+    // 1. TOP ROW: PRESET + ANTI-FEEDBACK
+    const topRow = document.createElement('div'); topRow.className = 'mic-top-row';
+    
+    const controlRack = createModule('GLOBAL MIC CONTROL', '#fff');
+    // Preset
+    const sel = document.createElement('select');
+    sel.style.background = "#050505"; sel.style.border = "1px solid #444"; sel.style.color = "var(--c-mic)"; sel.style.fontSize = "12px"; sel.style.padding = "10px"; sel.style.marginBottom = "15px";
+    sel.innerHTML = `<option value="">[ LOAD MIC PRESET ]</option>` + Object.keys(PRESETS.mic).map(k=>`<option value="${k}">${PRESETS.mic[k].name}</option>`).join('');
+    sel.onchange = (e) => loadPreset('mic', e.target.value);
+    controlRack.body.appendChild(sel);
+
+    // Feedback
+    const fbData = appData.mic.feedback || { q: 5.0, enable: true };
+    if (!appData.mic.feedback) appData.mic.feedback = fbData;
+    const sendFB = () => sendDSP(`7;0;${fbData.q}~`);
+    controlRack.body.appendChild(createSlider('AUTO NOTCH Q', fbData.q, 0.1, 10.0, 0.1, '', v=>{fbData.q=v; markDirty()}, sendFB, 'fx-slider'));
+    
+    const note = document.createElement('div');
+    note.innerHTML = "Auto-detection enabled. Q Factor: 0.1 (Wide) - 10.0 (Narrow)";
+    note.style.fontSize="10px"; note.style.color="#555"; note.style.marginTop="5px"; note.style.fontStyle="italic";
+    controlRack.body.appendChild(note);
+    
+    topRow.appendChild(controlRack.el);
+    micContainer.appendChild(topRow);
+
+    // 2. FX ROW: REVERB + ECHO
+    const fxRow = document.createElement('div'); fxRow.className = 'mic-fx-row';
+    
+    // Reverb
+    const rev = appData.mic.reverb;
+    const fxReverb = createModule('STUDIO REVERB', 'var(--c-fx)');
+    const sendRev = () => sendDSP(`5;0;${rev.gain},${rev.decay},${rev.pre},${rev.drywet},${rev.room},${rev.damp}~`);
+    fxReverb.body.appendChild(createSlider('LEVEL', rev.gain, 0, 100, 1, '%', v=>{rev.gain=v;markDirty()}, sendRev, 'fx-slider'));
+    fxReverb.body.appendChild(createSlider('DECAY', rev.decay, 0, 100, 1, '%', v=>{rev.decay=v;markDirty()}, sendRev, 'fx-slider'));
+    fxReverb.body.appendChild(createSlider('PRE-DELAY', rev.pre, 0, 200, 1, 'ms', v=>{rev.pre=v;markDirty()}, sendRev, 'fx-slider'));
+    fxReverb.body.appendChild(createSlider('WET MIX', rev.drywet, 0, 100, 1, '%', v=>{rev.drywet=v;markDirty()}, sendRev, 'fx-slider'));
+    fxReverb.body.appendChild(createSlider('ROOM', rev.room, 0, 100, 1, '%', v=>{rev.room=v;markDirty()}, sendRev, 'fx-slider'));
+    fxReverb.body.appendChild(createSlider('DAMP', rev.damp, 0, 100, 1, '%', v=>{rev.damp=v;markDirty()}, sendRev, 'fx-slider'));
+    fxRow.appendChild(fxReverb.el);
+
+    // Echo
+    const echo = appData.mic.echo;
+    const fxEcho = createModule('STEREO ECHO', 'var(--c-fx)');
+    const sendEcho = () => sendDSP(`6;0;${echo.gain},${echo.delay},${echo.repeat},${echo.drywet}~`);
+    fxEcho.body.appendChild(createSlider('LEVEL', echo.gain, 0, 100, 1, '%', v=>{echo.gain=v;markDirty()}, sendEcho, 'fx-slider'));
+    fxEcho.body.appendChild(createSlider('TIME', echo.delay, 0, 1000, 10, 'ms', v=>{echo.delay=v;markDirty()}, sendEcho, 'fx-slider'));
+    fxEcho.body.appendChild(createSlider('FEEDBACK', echo.repeat, 0, 100, 1, '%', v=>{echo.repeat=v;markDirty()}, sendEcho, 'fx-slider'));
+    fxEcho.body.appendChild(createSlider('WET MIX', echo.drywet, 0, 100, 1, '%', v=>{echo.drywet=v;markDirty()}, sendEcho, 'fx-slider'));
+    fxRow.appendChild(fxEcho.el);
+
+    micContainer.appendChild(fxRow);
+
+    // 3. EQ ROW: MIC 1 + MIC 2
+    const eqRow = document.createElement('div'); eqRow.className = 'mic-eq-row';
+
+    [1, 2].forEach(n => {
+        const m = createModule(`MICROPHONE ${n} EQ`, 'var(--c-mic)');
+        const r = document.createElement('div'); 
+        r.className='eq-grid'; 
+        r.style.height='450px'; // 450px Height for tall sliders
+        r.style.gridTemplateColumns='repeat(3, 1fr)';
+        
+        const sendMicTone = () => { const t = appData.mic[`mic${n}`]; sendDSP(`4;${n};${t[0]},${t[1]},${t[2]}~`); };
+        ['LO','MID','HI'].forEach((l,i)=> r.appendChild(createSimpleStrip(l, appData.mic[`mic${n}`][i], v=>{appData.mic[`mic${n}`][i]=v;markDirty()}, sendMicTone, 'var(--c-mic)')));
+        m.body.appendChild(r); eqRow.appendChild(m.el);
+    });
+    
+    micContainer.appendChild(eqRow);
+
+    content.appendChild(micContainer);
+  }
+
+  function renderInfo() {
+    const rack = createModule('SYSTEM NOTES', '#999');
+    rack.body.innerHTML = `<textarea style="width:100%; height:400px; background:#050505; border:1px solid #333; color:#ccc; padding:15px; font-family:'Inter',monospace; font-size:13px; outline:none; border-radius:8px; line-height:1.5" spellcheck="false">${appData.info}</textarea>`;
+    rack.body.querySelector('textarea').addEventListener('input', e=>{appData.info=e.target.value; markDirty()});
+    content.appendChild(rack.el);
+  }
+
+  function createModule(title, color) {
+      const el = document.createElement('div'); el.className = 'module-card';
+      const head = document.createElement('div'); head.className='module-head'; 
+      head.innerHTML = `<div><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};margin-right:8px;box-shadow:0 0 8px ${color}"></span><span style="color:${color}">${title}</span></div>`;
+      const body = document.createElement('div'); body.className='module-body';
+      el.appendChild(head); el.appendChild(body);
+      return {el, body};
+  }
+
+  function updateLoud(ch, k, v) {
+    if (k === 'on') { appData[ch].loudness[k] = v; } else { appData[ch].loudness[k] = parseFloat(v); }
+    markDirty(); 
+  }
+
+  function createSlider(label, val, min, max, step, unit, onLive, onFinal, cls='') {
+    const row = document.createElement('div'); row.className = 'row-ctrl';
+    const id = 'sl_' + Math.random().toString(36).substr(2,9);
+    
+    row.innerHTML = `<div class="ctrl-label" title="${label}">${label}</div><div class="slider-group"><div class="btn-step" id="btn_dec_${id}">-</div><input type="range" class="h-slider ${cls}" min="${min}" max="${max}" step="${step}" value="${val}" id="${id}"><div class="btn-step" id="btn_inc_${id}">+</div></div><div class="val-disp" id="val_${id}">${val}${unit}</div>`;
+    
+    setTimeout(() => {
+        const input = document.getElementById(id); const valDisplay = document.getElementById('val_'+id);
+        const btnDec = document.getElementById('btn_dec_'+id); const btnInc = document.getElementById('btn_inc_'+id);
+        if(!input) return;
+
+        const update = (newVal, isFinal) => {
+            newVal = Math.max(min, Math.min(max, newVal));
+            if(step < 1) newVal = Math.round(newVal * 100) / 100;
+            input.value = newVal; valDisplay.innerText = newVal + unit;
+            onLive(newVal);
+            if(isFinal && onFinal) onFinal();
+        };
+
+        input.oninput = (e) => { valDisplay.innerText = e.target.value + unit; onLive(parseFloat(e.target.value)); };
+        input.onchange = (e) => { if(onFinal) onFinal(); }
+        btnDec.onclick = () => update(parseFloat(input.value) - step, true);
+        btnInc.onclick = () => update(parseFloat(input.value) + step, true);
+    }, 0);
+    return row;
+  }
+
+  function createComplexStrip(band, i, onUpd, onFinalSend) {
+    const el = document.createElement('div'); el.className = 'eq-strip';
+    el.innerHTML = `<div style="font-size:9px; color:#555; margin-bottom:4px">BAND ${i+1}</div>`;
+
+    const sel = document.createElement('select'); 
+    FILTER_TYPES.forEach(t => { const o = document.createElement('option'); o.value=t; o.text=t.substring(0,4).toUpperCase(); if(t===band.t) o.selected=true; sel.appendChild(o); });
+    sel.onchange = e => { band.t = e.target.value; onUpd(); onFinalSend(); };
+    el.appendChild(sel);
+
+    const fIn = document.createElement('input'); fIn.type='number'; fIn.value=band.f;
+    fIn.onchange = e => { band.f = parseFloat(e.target.value); onUpd(); onFinalSend(); };
+    el.appendChild(fIn);
+
+    const qIn = document.createElement('input'); qIn.type='number'; qIn.value=band.q; qIn.step=0.1;
+    qIn.onchange = e => { band.q = parseFloat(e.target.value); onUpd(); onFinalSend(); };
+    el.appendChild(qIn);
+
+    const valDiv = document.createElement('div'); valDiv.className='val-disp'; valDiv.style.width='100%'; valDiv.style.textAlign='center';
+    valDiv.innerText = band.g>0?`+${band.g}`:band.g;
+
+    const fader = createFader(band.g, 
+        (val) => { band.g = val; valDiv.innerText = val>0?`+${val}`:val; onUpd(); }, 
+        onFinalSend, 'var(--c-primary)');
+    el.appendChild(fader);
+    el.appendChild(valDiv);
+    return el;
+  }
+
+  function createSimpleStrip(label, val, onUpd, onFinalSend, color) {
+    const el = document.createElement('div'); el.className = 'eq-strip';
+    el.innerHTML = `<div style="font-size:10px; color:${color}; font-weight:bold; margin-bottom:10px">${label}</div>`;
+    const valDiv = document.createElement('div'); valDiv.className='val-disp'; valDiv.style.width='100%'; valDiv.style.textAlign='center';
+    const fader = createFader(val, (v)=>{ val=v; valDiv.innerText=v>0?`+${v}`:v; onUpd(v); }, onFinalSend, color);
+    el.appendChild(fader);
+    valDiv.innerText=val>0?`+${val}`:val; valDiv.style.marginTop='10px'; valDiv.style.color=color;
+    el.appendChild(valDiv);
+    return el;
+  }
+  
+  function createFader(initVal, onLive, onFinal, color) {
+    const slot = document.createElement('div'); slot.className = 'v-fader-track';
+    const fill = document.createElement('div'); fill.className = 'v-fader-fill'; fill.style.background = color; fill.style.boxShadow = `0 0 10px ${color}`;
+    const thumb = document.createElement('div'); thumb.className = 'v-fader-cap';
+    slot.appendChild(fill); slot.appendChild(thumb);
+
+    const range = 15; let currentDb = initVal;
+    const updateUI = (db) => {
+      const pct = (db + range) / (range * 2); const visualPct = Math.max(0, Math.min(1, pct)) * 100;
+      thumb.style.bottom = visualPct + '%';
+      if (visualPct >= 50) { fill.style.bottom = '50%'; fill.style.height = (visualPct - 50) + '%'; } 
+      else { fill.style.bottom = visualPct + '%'; fill.style.height = (50 - visualPct) + '%'; }
+    };
+    updateUI(initVal);
+
+    let isDrag = false;
+    const handle = (e) => {
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const rect = slot.getBoundingClientRect();
+      const pct = 1 - ((clientY - rect.top) / rect.height);
+      let db = -range + (pct * (range * 2)); db = Math.max(-range, Math.min(range, db)); db = Math.round(db * 10) / 10;
+      currentDb = db; updateUI(db); onLive(db);
+    };
+
+    const start = (e) => { isDrag=true; e.preventDefault(); handle(e); document.addEventListener('mousemove', move); document.addEventListener('touchmove', move, {passive:false}); document.addEventListener('mouseup', end); document.addEventListener('touchend', end); };
+    const move = (e) => { if(isDrag) handle(e); };
+    const end = () => { if(isDrag) { isDrag=false; if(onFinal) onFinal(); } document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',end); document.removeEventListener('touchmove',move); document.removeEventListener('touchend',end); };
+    
+    slot.addEventListener('dblclick', () => { currentDb = 0; updateUI(0); onLive(0); if(onFinal) onFinal(); });
+    slot.addEventListener('mousedown', start); slot.addEventListener('touchstart', start, {passive:false});
+    return slot;
+  }
+  setTab('left');
+</script>
+</body>
+</html>
+
+
