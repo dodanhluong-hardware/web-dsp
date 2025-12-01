@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta name="viewport" content="width=1280, user-scalable=yes" />
   <title>DDL</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
@@ -498,7 +498,7 @@
     const fxEcho = createModule('STEREO ECHO', 'var(--c-fx)');
     const sendEcho = () => sendDSP(`6;0;${echo.gain},${echo.delay},${echo.repeat},${echo.drywet}~`);
     fxEcho.body.appendChild(createSlider('LEVEL', echo.gain, 0, 100, 1, '%', v=>{echo.gain=v;markDirty()}, sendEcho, 'fx-slider'));
-    fxEcho.body.appendChild(createSlider('TIME', echo.delay, 0, 1000, 10, 'ms', v=>{echo.delay=v;markDirty()}, sendEcho, 'fx-slider'));
+    fxEcho.body.appendChild(createSlider('REPEAT', echo.delay, 0, 1000, 10, 'ms', v=>{echo.delay=v;markDirty()}, sendEcho, 'fx-slider'));
     fxEcho.body.appendChild(createSlider('FEEDBACK', echo.repeat, 0, 100, 1, '%', v=>{echo.repeat=v;markDirty()}, sendEcho, 'fx-slider'));
     fxEcho.body.appendChild(createSlider('WET MIX', echo.drywet, 0, 100, 1, '%', v=>{echo.drywet=v;markDirty()}, sendEcho, 'fx-slider'));
     fxRow.appendChild(fxEcho.el);
